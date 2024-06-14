@@ -5,7 +5,7 @@ use InvalidArgumentException;
 
 class DataFrame{
     public $data;
-    private $column;
+    private $columns;
     
     public function __construct($data = null, $columns = null) {
         if ($data !== null) {
