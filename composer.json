@@ -15,9 +15,6 @@
             "name": "bright-webb",
             "email": "webilorbright@outlook.com"
         }
-    ],
+    ]
     
-    "require": {
-        "vlucas/phpdotenv": "^5.6"
-    }
 }
