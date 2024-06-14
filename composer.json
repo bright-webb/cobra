@@ -1,0 +1,22 @@
+{
+    "name": "bright-webb/cobra",
+    "description": "PHP library for managing and manipulating data",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Cobra\\": "src/"
+        },
+        "files": [
+            "app/helper.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "bright-webb",
+            "email": "webilorbright@outlook.com"
+        }
+    ],
+    "require": {
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
