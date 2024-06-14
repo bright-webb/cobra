@@ -13,8 +13,10 @@ class Series {
 
     // Get data using index
     public function getIndex($index){
-       $this->flatten($this->data);
-       return $this->data[$index];
+       if(is_array($this->data)){
+        $this->flatten();
+        return $this->data[$index];
+       }
     }
 
     public function getAll(){
@@ -30,7 +32,7 @@ class Series {
     }
 
     public function sum(){
-        return array_sume($this->data);
+        return array_sum($this->data);
     }
 
     public function mean(){

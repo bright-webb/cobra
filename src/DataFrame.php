@@ -38,7 +38,6 @@ class DataFrame{
             $this->columns = array_keys($result[0]);
         }
         return new self($result);
-        return $this->data;
     }
 
     public function getData(): array
@@ -193,7 +192,7 @@ public function dropNan(){
         $newData = [];
         foreach($this->data as $row){
             $newRow = [];
-            foreach($colmnsToKeep as $column){
+            foreach($columnsTokeep as $column){
                 $newRow[$column] = $row[$column];
             }
             $newData = $newRow;
@@ -210,10 +209,16 @@ public function head($rows = 10) {
     return new self($headData);
 }
 
-public function tail($n = 10){
-    $tailData =  array_slice($this->data -$n, $n, true);
-    $this->data = $tailData;
-    return $tailData;
+public function tail($n = 10)
+{
+    // Check if $this->data is an array
+    if (is_array($this->data)) {
+        $tailData = array_slice($this->data, -$n, null, true);
+        $this->data = $tailData;
+        return $tailData;
+    } else {
+        throw new \Exception('$this->data is not an array');
+    }
 }
 
 public function describe(){
@@ -245,11 +250,12 @@ public function getColumns(){
     return $this->columns;
 }
 
-public function getColumn(string $column){
-    if(!in_array($this->columns, $column)){
+public function getColumn(string $column)
+{
+    if (!in_array($column, $this->columns)) {
         throw new InvalidArgumentException("$column not found");
     }
-    
+
     return $this->columns[$column];
 }
 
@@ -273,7 +279,7 @@ public function stdDev(array $values): float{
     $mean = array_sum($values) / count($values);
     $sumSquaredDiffs = 0;
     foreach($values as $value){
-        $sumSquaredDiffs += pow($value - mean, 2);
+        $sumSquaredDiffs += pow($value - $mean, 2);
     }
     return sqrt($sumSquaredDiffs / count($values));
 }
@@ -631,8 +637,6 @@ public function normalize() {
         }
     
         $this->data = $result;
-        $this->columns = $this->columns;
-    
         return $this;
     }
 

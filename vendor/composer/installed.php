@@ -3,7 +3,7 @@
         'name' => 'bright-webb/cobra',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '6ee08406b72e26a5c28a72910922c2ced94ae416',
+        'reference' => 'dcc2e268aa3c4a68f1c46b7c1b9aeefa6df6f19d',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'bright-webb/cobra' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '6ee08406b72e26a5c28a72910922c2ced94ae416',
+            'reference' => 'dcc2e268aa3c4a68f1c46b7c1b9aeefa6df6f19d',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
