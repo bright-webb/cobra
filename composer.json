@@ -5,10 +5,7 @@
     "autoload": {
         "psr-4": {
             "Cobra\\": "src/"
-        },
-        "files": [
-            "app/helper.php"
-        ]
+        }
     },
     "authors": [
         {

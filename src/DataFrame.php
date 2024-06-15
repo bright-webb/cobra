@@ -122,23 +122,6 @@ class DataFrame{
                 }
     }
 
-    
-
-    public function toCSV() {
-        if (empty($this->data)) {
-            return '';
-        }
-
-        $output = fopen('php://temp', 'r+');
-        fputcsv($output, $this->columns); // Add the headers
-        foreach ($this->data as $row) {
-            fputcsv($output, $row);
-        }
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
-        return $csv;
-    }
 
     public function toJSON() {
         return json_encode($this->data, JSON_PRETTY_PRINT);
@@ -665,5 +648,88 @@ public function normalize() {
     
         return $counts;
     }
+
+
+
+    public function save($name, $as = "sql") {
+        if ($as === "sql") {
+            $this->saveAsSQL($name);
+        } elseif ($as === "csv") {
+            $this->saveAsCSV($name);
+        } else {
+            throw new InvalidArgumentException("Unsupported format: $as. Use 'sql' or 'csv'.");
+        }
+    }
+
+
+    private function saveAsSQL($tableName) {
+        $db = new DB();
+        if (empty($this->data)) {
+            throw new InvalidArgumentException("No data available to save.");
+        }
+        $columns = array_keys($this->data[0]);
+        $columnTypes = [];
+    
+        foreach ($this->data as $row) {
+            foreach ($columns as $index => $column) {
+                $value = $row[$column];
+                if (is_string($value)) {
+                    $columnTypes[$index] = "VARCHAR(255)";
+                } elseif (is_float($value)) {
+                    $columnTypes[$index] = "FLOAT";
+                } else {
+                    $columnTypes[$index] = "INTEGER";
+                }
+            }
+        }
+
+        $columnsList = implode(", ", array_map(
+            fn($col, $type) => "`$col` $type",
+            $columns,
+            $columnTypes
+        ))
+        $columnsList = implode(", ", array_map(fn($col) => "`$col` VARCHAR(255)", $columns));
+
+        $createTableSQL = "CREATE TABLE IF NOT EXISTS `$tableName` (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        $columnsList
+        date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )";
+        $db->exec($createTableSQL);
+
+        $insertSQL = "INSERT INTO `$tableName` (" . implode(", ", $columns) . ") VALUES (" . implode(", ", array_fill(0, count($columns), "?")) . ")";
+        $stmt = $db->prepare($insertSQL);
+
+        foreach ($this->data as $row) {
+            $stmt->execute(array_values($row));
+        }
+    }
+
+    private function saveAsCSV($fileName) {
+        if (empty($this->data)) {
+            throw new InvalidArgumentException("No data available to save.");
+        }
+
+        $filePath = $fileName . ".csv";
+        $file = fopen($filePath, 'w');
+
+        // Add the headers
+        fputcsv($file, array_keys($this->data[0]));
+
+        // Add the data rows
+        foreach ($this->data as $row) {
+            fputcsv($file, $row);
+        }
+
+        fclose($file);
+
+        if (php_sapi_name() !== 'cli') {
+            header('Content-Type: application/csv');
+            header('Content-Disposition: attachment; filename="' . $filePath . '";');
+            readfile($filePath);
+            unlink($filePath); // Delete file after download
+        }
+    }
+
     
 }
