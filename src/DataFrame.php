@@ -32,7 +32,7 @@ class DataFrame{
         }
         $db = new DB();
 
-        $result =  $db->select("SELECT * FROM $table");
+        $result =  $db->table($table)->get();
         if ($result) {
             $this->data = $result;
             $this->columns = array_keys($result[0]);
@@ -687,7 +687,7 @@ public function normalize() {
             fn($col, $type) => "`$col` $type",
             $columns,
             $columnTypes
-        ))
+        ));
         $columnsList = implode(", ", array_map(fn($col) => "`$col` VARCHAR(255)", $columns));
 
         $createTableSQL = "CREATE TABLE IF NOT EXISTS `$tableName` (
@@ -695,10 +695,10 @@ public function normalize() {
         $columnsList
         date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )";
-        $db->exec($createTableSQL);
+        $db->db->exec($createTableSQL);
 
         $insertSQL = "INSERT INTO `$tableName` (" . implode(", ", $columns) . ") VALUES (" . implode(", ", array_fill(0, count($columns), "?")) . ")";
-        $stmt = $db->prepare($insertSQL);
+        $stmt = $db->db->prepare($insertSQL);
 
         foreach ($this->data as $row) {
             $stmt->execute(array_values($row));

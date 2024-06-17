@@ -10,7 +10,7 @@ class DB {
     private $pass;
     private $db_name;
     private $host;
-    private $db;
+    public $db;
     
     private $table;
     private $where = [];
@@ -161,60 +161,50 @@ class DB {
         return $this->db->lastInsertId();
     }
 
-    public function insert($table, $data){
+    public function insert($data){
+        $table = $this->table;
+        
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
             throw new InvalidArgumentException('Invalid table name');
         }
 
-        $key = implode(',', array_keys($data));
-        $value = implode(', :', array_values($data));
-
-        $sql = "INSERT INTO $table ($key) VALUES ($value)";
+        $columns = implode(", ", array_keys($data));
+        $placeholders = implode(", ", array_fill(0, count($data), "?"));
+        $sql = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
 
         $stmt = $this->db->prepare($sql);
-        foreach($data as $key => $val){
-            $stmt->bindValue(":$key", $val);
+        try {
+            $stmt->execute(array_values($data));
+            return $this->db->lastInsertId(); 
+        } catch (PDOException $e) {
+            echo "Insert failed: " . $e->getMessage();
+            return false;
         }
-        $stmt->execute();
-
-        return $this->lastInsertId();
     }
 
-    public function update($table, $data, $condition){
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
-        throw new InvalidArgumentException('Invalid table name');
-    }
+    public function update($data){
+        if (!$this->table) {
+            throw new InvalidArgumentException('Table not set.');
+        }
 
-    // Build the SET part of the query
-    $set = [];
-    foreach ($data as $key => $value) {
-        $set[] =  "$key = :$key";
-    }
-    $set = implode(', ', $set);
+        $setClause = implode(", ", array_map(fn($col) => "$col = ?", array_keys($data)));
+        $whereClause = implode(" AND ", array_map(fn($col) => "$col = ?", array_keys($this->where)));
+        $sql = "UPDATE {$this->table} SET $setClause WHERE $whereClause";
 
-    // Build the WHERE part of the query
-    $whereClauses = [];
-    foreach ($condition as $key => $value) {
-        $whereClauses[] = "$key = :where_$key";
-    }
-    $where = implode(' AND ', $whereClauses);
+        $stmt = $this->db->prepare($sql);
+        $values = array_merge(array_values($data), array_values($this->where));
 
-    $sql = "UPDATE $table SET $set WHERE $where";
-    $stmt = $this->db->prepare($sql);
-
-    foreach ($data as $key => $value) {
-        $stmt->bindValue(":$key", $value);
-    }
-
-    foreach ($condition as $key => $value) {
-        $stmt->bindValue(":where_$key", $value);
-    }
-
-    return $stmt->execute();
+        try {
+            return $stmt->execute($values);
+        } catch (PDOException $e) {
+            echo "Update failed: " . $e->getMessage();
+            return false;
+        }
 }
 
 
-    public function delete($table, $condition){
+    public function delete($condition){
+        $table = $this->table;
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
             throw new InvalidArgumentException('Invalid table name');
         }
