@@ -29,7 +29,7 @@ class DB {
        try {
            $this->db = new PDO("mysql:host=$this->host;dbname=$this->db_name", $this->user, $this->pass);
            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-           $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+           $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_BOTH);
        } catch(PDOException $e) {
            error_log("Connection failure: " . $e->getMessage());
            echo "Connection error ". $e->getMessage();
@@ -46,14 +46,14 @@ class DB {
         }
     }
 
-    public function raw(string $sql, array $params = []): array {
+    public function raw(string $sql, array $params = []) {
         try {
             $stmt = $this->db->prepare($sql);
             foreach($params as $key => $value){
                 $stmt->bindValue($key, $value);
             }
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $stmt;
         } catch(PDOException $e) {
             error_log("Failed to select: " . $e->getMessage());
             throw new PDOException("Failed to select");
@@ -107,7 +107,7 @@ class DB {
         return $this;
     }
 
-    public function get(): array {
+    public function get() {
         $sql = "SELECT {$this->select} FROM {$this->table}";
         
         if (!empty($this->joins)) {
@@ -132,8 +132,14 @@ class DB {
                 $sql .= " OFFSET {$this->offset}";
             }
         }
-
-        return $this->raw($sql, $this->where);
+        $row = $this->raw($sql, $this->where);
+        if($row){
+            return $row->fetchAll(PDO::FETCH_BOTH)[0];
+        }
+        else{
+            return 0;
+        }
+        
 
         
     }
@@ -240,6 +246,9 @@ class DB {
 
         $sql = "SELECT * FROM {$this->table} $whereClause";
         $row = $this->raw($sql, $params);
-        return count($row);
+        if($row){
+            return $row->rowCount();
+        }
+        return 0;
     }
 }

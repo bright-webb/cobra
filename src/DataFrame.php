@@ -1,6 +1,7 @@
 <?php
 namespace Cobra;
 use Cobra\DB;
+use PDO;
 use InvalidArgumentException;
 
 class DataFrame{
@@ -32,7 +33,8 @@ class DataFrame{
         }
         $db = new DB();
 
-        $result =  $db->table($table)->get();
+        $sql =  $db->db->query("SELECT * FROM $table");
+        $result = $sql->fetchAll(PDO::FETCH_ASSOC);
         if ($result) {
             $this->data = $result;
             $this->columns = array_keys($result[0]);
