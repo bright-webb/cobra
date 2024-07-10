@@ -1,7 +1,6 @@
 <?php
 namespace Cobra;
 use Cobra\DB;
-use PDO;
 use InvalidArgumentException;
 
 class DataFrame{
@@ -17,7 +16,18 @@ class DataFrame{
                     $this->columns = $columns;
                 }
                 $this->data = $data;
-            } else {
+            } 
+            elseif (is_object($data) && method_exists($data, 'toArray')) {
+                
+                $arrayData = $data->toArray();
+                if ($columns === null && count($arrayData) > 0) {
+                    $this->columns = array_keys((array) $arrayData[0]);
+                } else {
+                    $this->columns = $columns;
+                }
+                $this->data = $arrayData;
+            }
+            else {
                 throw new InvalidArgumentException("Data should be a non-empty array");
             }
         }
@@ -33,8 +43,7 @@ class DataFrame{
         }
         $db = new DB();
 
-        $sql =  $db->db->query("SELECT * FROM $table");
-        $result = $sql->fetchAll(PDO::FETCH_ASSOC);
+        $result =  $db->raw("SELECT * FROM $table");
         if ($result) {
             $this->data = $result;
             $this->columns = array_keys($result[0]);
@@ -156,7 +165,7 @@ class DataFrame{
         $this->data = $newData;
         $this->columns = $columnsToKeep;
     }
-    return $this->data;
+    return $this;
 }
 
 public function dropNan(){
@@ -185,13 +194,13 @@ public function dropNan(){
         $this->data = $newData;
         $this->columns = $columnsToKeep;
     }
-    return $this->data;
+    return $this;
 }
 
 public function head($rows = 10) {
     $headData = array_slice($this->data, 0, $rows);
     $this->data = $headData;
-    return new self($headData);
+    return $this;
 }
 
 public function tail($n = 10)
@@ -200,7 +209,7 @@ public function tail($n = 10)
     if (is_array($this->data)) {
         $tailData = array_slice($this->data, -$n, null, true);
         $this->data = $tailData;
-        return $tailData;
+        return $this;
     } else {
         throw new \Exception('$this->data is not an array');
     }

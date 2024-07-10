@@ -1,5 +1,6 @@
 # Cobra
-Cobra is a PHP library for managing and manipulating large data sets, inspired by Python's Pandas library. It provides a DataFrame class that allows you to load, manipulate, and analyze data with ease.
+Cobra is a data management for PHP to clean, modify and transform your data. Whether you're working with data from a database, CSV files, or arrays, Cobra provides a suite of tools to help you handle, transform, and analyze your data efficiently.
+
 
 ## Features
 - Load data from SQL databases and CSV files

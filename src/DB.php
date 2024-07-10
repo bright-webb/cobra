@@ -29,7 +29,7 @@ class DB {
        try {
            $this->db = new PDO("mysql:host=$this->host;dbname=$this->db_name", $this->user, $this->pass);
            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-           $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_BOTH);
+           $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
        } catch(PDOException $e) {
            error_log("Connection failure: " . $e->getMessage());
            echo "Connection error ". $e->getMessage();
@@ -46,14 +46,14 @@ class DB {
         }
     }
 
-    public function raw(string $sql, array $params = []) {
+    public function raw(string $sql, array $params = []): array {
         try {
             $stmt = $this->db->prepare($sql);
             foreach($params as $key => $value){
                 $stmt->bindValue($key, $value);
             }
             $stmt->execute($params);
-            return $stmt;
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch(PDOException $e) {
             error_log("Failed to select: " . $e->getMessage());
             throw new PDOException("Failed to select");
@@ -107,7 +107,7 @@ class DB {
         return $this;
     }
 
-    public function get() {
+    public function get(): array {
         $sql = "SELECT {$this->select} FROM {$this->table}";
         
         if (!empty($this->joins)) {
@@ -132,14 +132,8 @@ class DB {
                 $sql .= " OFFSET {$this->offset}";
             }
         }
-        $row = $this->raw($sql, $this->where);
-        if($row){
-            return $row->fetchAll(PDO::FETCH_BOTH)[0];
-        }
-        else{
-            return 0;
-        }
-        
+
+        return $this->raw($sql, $this->where);
 
         
     }
@@ -167,50 +161,60 @@ class DB {
         return $this->db->lastInsertId();
     }
 
-    public function insert($data){
-        $table = $this->table;
-        
+    public function insert($table, $data){
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
             throw new InvalidArgumentException('Invalid table name');
         }
 
-        $columns = implode(", ", array_keys($data));
-        $placeholders = implode(", ", array_fill(0, count($data), "?"));
-        $sql = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
+        $key = implode(',', array_keys($data));
+        $value = implode(', :', array_values($data));
+
+        $sql = "INSERT INTO $table ($key) VALUES ($value)";
 
         $stmt = $this->db->prepare($sql);
-        try {
-            $stmt->execute(array_values($data));
-            return $this->db->lastInsertId(); 
-        } catch (PDOException $e) {
-            echo "Insert failed: " . $e->getMessage();
-            return false;
+        foreach($data as $key => $val){
+            $stmt->bindValue(":$key", $val);
         }
+        $stmt->execute();
+
+        return $this->lastInsertId();
     }
 
-    public function update($data){
-        if (!$this->table) {
-            throw new InvalidArgumentException('Table not set.');
-        }
+    public function update($table, $data, $condition){
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+        throw new InvalidArgumentException('Invalid table name');
+    }
 
-        $setClause = implode(", ", array_map(fn($col) => "$col = ?", array_keys($data)));
-        $whereClause = implode(" AND ", array_map(fn($col) => "$col = ?", array_keys($this->where)));
-        $sql = "UPDATE {$this->table} SET $setClause WHERE $whereClause";
+    // Build the SET part of the query
+    $set = [];
+    foreach ($data as $key => $value) {
+        $set[] =  "$key = :$key";
+    }
+    $set = implode(', ', $set);
 
-        $stmt = $this->db->prepare($sql);
-        $values = array_merge(array_values($data), array_values($this->where));
+    // Build the WHERE part of the query
+    $whereClauses = [];
+    foreach ($condition as $key => $value) {
+        $whereClauses[] = "$key = :where_$key";
+    }
+    $where = implode(' AND ', $whereClauses);
 
-        try {
-            return $stmt->execute($values);
-        } catch (PDOException $e) {
-            echo "Update failed: " . $e->getMessage();
-            return false;
-        }
+    $sql = "UPDATE $table SET $set WHERE $where";
+    $stmt = $this->db->prepare($sql);
+
+    foreach ($data as $key => $value) {
+        $stmt->bindValue(":$key", $value);
+    }
+
+    foreach ($condition as $key => $value) {
+        $stmt->bindValue(":where_$key", $value);
+    }
+
+    return $stmt->execute();
 }
 
 
-    public function delete($condition){
-        $table = $this->table;
+    public function delete($table, $condition){
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
             throw new InvalidArgumentException('Invalid table name');
         }
@@ -246,9 +250,6 @@ class DB {
 
         $sql = "SELECT * FROM {$this->table} $whereClause";
         $row = $this->raw($sql, $params);
-        if($row){
-            return $row->rowCount();
-        }
-        return 0;
+        return count($row);
     }
 }

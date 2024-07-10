@@ -1,14 +1,27 @@
 <?php
 
 namespace Cobra;
+use InvalidArgumentException;
 
 class Series {
     private $data = [];
-    private $name;
 
-    public function __construct(array $data = [], $name = null){
-        $this->data = $data;
-        $this->name = $name;
+    public function __construct($data = null){
+       if($data !== null){
+            if(is_array($data) && count($data) > 0){
+                $this->data = $data;
+            }
+            else if(is_object($data) && method_exists($data, 'toArray')){
+                $this->data = $data->toArray();
+            }
+            else {
+                throw new InvalidArgumentException("Data should be a non-empty array");
+            }
+       }
+    }
+
+    public function set($data){
+
     }
 
     // Get data using index
@@ -19,21 +32,104 @@ class Series {
        }
     }
 
-    public function getAll(){
+    public function loc(int $position, string $column){
+        if(is_array($this->data)){
+            $array = $this->data;
+            if(array_key_exists($position, $this->data) && array_key_exists($column, $this->data[$position])){
+                $this->data = $this->data[$position][$column];
+                return $this;
+            }
+            else{
+                echo "Key not found";
+            }
+  
+        }
+    }
+
+    public function row(int $pos){
+        if(array_key_exists($pos, $this->data)){
+            $this->data = $this->data[$pos];
+            return $this;
+        }
+        else{
+            echo "Invalid index position: Position not ound";
+            exit;
+        }
+    }
+
+    public function col(string $loc){
+        if(array_key_exists($loc, $this->data)){
+            $this->data = $this->data[$loc];
+            return $this;
+        }
+        else{
+            echo "Column not found";
+            exit;
+        }
+    }
+
+    public function keys(){
+        $this->data = array_keys($this->data);
+
+        return $this->toArray();
+    }
+
+    public function values(){
+        $this->data = array_values($this->data);
+        return $this->toArray();
+    }
+
+    public function toArray(){
         return $this->data;
     }
 
-    public function getName(){
-        return $this->name;
+    public function toObject(){
+        return (object)$this->data;
+
     }
 
-    public function setName($name){
-        $this->name = $name;
+    public function dropna(){
+         /* I really don't know what to say.
+           But this method drops keys with empty or null values in an associative array
+           1D or 2D
+        */
+
+        $data = [];
+        $keys = []; 
+        $values = []; 
+        
+
+        foreach($this->data as $col => $row){
+            if(is_array($row)){
+                foreach($row as $key=>$value){
+                    if(isset($row[$key])){
+                       $data[] = [$key=>$value];
+                    }
+                }  
+            }
+            else{
+                $keys[] = $col;
+                $values[] = $row;
+            }
+        }
+        for($i = 0; $i < count($keys); $i++){
+            for($j = $i; $j < count($values);){  
+                if(isset($values[$i])){
+                    $data[$keys[$i]] = $values[$i];
+                }
+                break;
+            }
+        }
+        $this->data = $data;
+    
+        return new self($this);
     }
 
     public function sum(){
         return array_sum($this->data);
     }
+
+
 
     public function mean(){
         $count = count($this->data);
@@ -81,11 +177,11 @@ class Series {
     }
 
     public function map(callable  $callback){
-        return new self(array_map($callback, $this->data), $this->name);
+        return new self(array_map($callback, $this->data));
     }
 
     public function filter(callable $callback){
-        return new self(array_filter($this->data, $callback), $this->name);
+        return new self(array_filter($this->data, $callback));
     }
 
     public function count(){
@@ -119,17 +215,25 @@ class Series {
             $result = array_values($result);
         }
         $this->data = $result;
-        return new self($result, $this->name);
+        return $this;
     }
 
     public function shuffle(){
         $shuffle = $this->data;
         shuffle($shuffle);
         $this->data = $shuffle;
-        return new self($shuffle, $this->name);
+        return new self($shuffle);
     }
 
     public function print(){
         print_r($this->data);
+    }
+
+    public function toJson(){
+        return json_encode($this->data, JSON_PRETTY_PRINT);
+    }
+
+    public function asJson(){
+        var_dump(json_encode($this->data, JSON_PRETTY_PRINT));
     }
 }
