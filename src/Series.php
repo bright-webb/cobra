@@ -125,6 +125,17 @@ class Series {
         return new self($this);
     }
 
+    public function drop(array $cols = []){
+        // This method is used to drop a given set of columns
+        $obj = (object)$this->data; // Convert the data to object
+        foreach($cols as $col){
+            unset($obj->$col);
+        }
+        
+        $this->data = (array)$obj;
+        return new self($this);
+    }
+
     public function sum(){
         return array_sum($this->data);
     }
